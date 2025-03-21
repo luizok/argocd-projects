@@ -27,6 +27,19 @@ spec:
     name: {{ .Values.aws.provider }}
 ---
 apiVersion: s3.aws.upbound.io/v1beta1
+kind: Bucket
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: aws-glue-assets-{{ $bucketSuffix }}
+spec:
+  forProvider:
+    region: {{ .Values.aws.region }}  
+    tags:
+      Name: some-name
+  providerConfigRef:
+    name: {{ .Values.aws.provider }}
+---
+apiVersion: s3.aws.upbound.io/v1beta1
 kind: Object
 metadata:
   namespace: {{ .Values.namespace }}
