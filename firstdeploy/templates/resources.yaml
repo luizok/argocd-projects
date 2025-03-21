@@ -49,8 +49,8 @@ spec:
     region: {{ .Values.aws.region }}
     bucket: aws-glue-assets-{{ $bucketSuffix }}
     key: scripts/my-first-script.py
-    source: ../../a.py
-    # content: {{ .Files.Get "a.py" | quote }}
+    # source: ../../a.py
+    content: {{ .Files.Get "a.py" | quote }}
   providerConfigRef:
     name: {{ .Values.aws.provider }}
 ---
