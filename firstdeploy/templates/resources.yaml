@@ -1,0 +1,108 @@
+{{- $bucketSuffix := print .Values.aws.account_id "-" .Values.aws.region }}
+---
+apiVersion: s3.aws.upbound.io/v1beta1
+kind: Bucket
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: source-bucket-{{ $bucketSuffix }}
+spec:
+  forProvider:
+    region: {{ .Values.aws.region }}  
+    tags:
+      Name: some-name
+  providerConfigRef:
+    name: {{ .Values.aws.provider }}
+---
+apiVersion: s3.aws.upbound.io/v1beta1
+kind: Bucket
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: target-bucket-{{ $bucketSuffix }}
+spec:
+  forProvider:
+    region: {{ .Values.aws.region }}  
+    tags:
+      Name: some-name
+  providerConfigRef:
+    name: {{ .Values.aws.provider }}
+---
+apiVersion: s3.aws.upbound.io/v1beta1
+kind: Object
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: my-first-bucket-object
+spec:
+  forProvider:
+    region: {{ .Values.aws.region }}
+    bucket: aws-glue-assets-{{ $bucketSuffix }}
+    key: scripts/my-first-script.py
+    # source: /home/luizok/a.py
+    content: {{ .Files.Get "a.py" | quote }}
+  providerConfigRef:
+    name: {{ .Values.aws.provider }}
+---
+apiVersion: iam.aws.upbound.io/v1beta1
+kind: Role
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: my-first-k8s-role
+spec:
+  forProvider:
+    assumeRolePolicy: |
+      {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": {
+              "Service": "glue.amazonaws.com"
+            },
+            "Action": "sts:AssumeRole"
+          }
+        ]
+      }
+    inlinePolicy:
+      - name: my-first-k8s-policy
+        policy: |
+          {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "s3:ListBucket",
+                  "s3:GetObject",
+                  "s3:PutObject",
+                  "s3:DeleteObject"
+                ],
+                "Resource": [
+                  "arn:aws:s3:::source-bucket-{{ $bucketSuffix }}",
+                  "arn:aws:s3:::source-bucket-{{ $bucketSuffix }}/*",
+                  "arn:aws:s3:::target-bucket-{{ $bucketSuffix }}",
+                  "arn:aws:s3:::target-bucket-{{ $bucketSuffix }}/*"
+                ]
+              }
+            ]
+          }
+  providerConfigRef:
+    name: {{ .Values.aws.provider }}
+---
+apiVersion: glue.aws.upbound.io/v1beta1
+kind: Job
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: my-first-glue-job
+spec:
+  forProvider:
+    region: {{ .Values.aws.region }}
+    roleArnRef:
+      name: my-first-k8s-role
+    command:
+      - name: test-creation-job
+        scriptLocation: s3://aws-glue-assets-{{ $bucketSuffix }}/scripts/my-first-script.py
+    defaultArguments:
+      --parameter1: value1
+      --parameter2: value2
+      --parameter3: value3
+  providerConfigRef:
+    name: {{ .Values.aws.provider }}

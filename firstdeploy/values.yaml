@@ -1,0 +1,5 @@
+aws:
+  provider: aws-provider-config
+  account_id: <account_id>
+  region: <region>
+namespace: my-first-deploy
